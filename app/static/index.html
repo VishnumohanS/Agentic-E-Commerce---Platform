@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dynamic Merchant Agent Engine | Real-Time Split-Screen Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .term-font { font-family: 'JetBrains Mono', monospace; }
+    .glass-card { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .chat-bubble-buyer { background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(59, 130, 246, 0.4); animation: fadeIn 0.3s ease-out; }
+    .chat-bubble-merchant { background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(99, 102, 241, 0.5); animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-50 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-brain text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+            Dynamic Merchant Agent Engine
+          </h1>
+          <p class="text-xs text-slate-400 font-medium">Real-Time Split-Screen • Vector Search • AP2 Mandates • Razorpay Test Mode</p>
+        </div>
+      </div>
+
+      <!-- Header Status Badges -->
+      <div class="flex items-center gap-2 text-xs font-semibold">
+        <span class="px-2.5 py-1 rounded-full bg-blue-950 text-blue-400 border border-blue-800 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> SSE Streaming Active
+        </span>
+        <span class="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-database text-emerald-400"></i> DynamoDB Ledger
+        </span>
+        <span class="px-2.5 py-1 rounded-full bg-sky-950 text-sky-400 border border-sky-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-credit-card text-sky-400"></i> Razorpay Test Mode
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Top Bar: Dynamic Input & Edge Case Simulation Controls -->
+    <div class="glass-card rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-2">
+            <i class="fa-solid fa-terminal"></i> Procurement Directive Harness
+          </h2>
+          <p class="text-xs text-slate-400">Enter ANY custom prompt or select a preset to test dynamic AI buyer & merchant negotiation</p>
+        </div>
+
+        <!-- Presets Buttons -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="applyPreset('charger')" class="px-3 py-1.5 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/80 text-xs font-bold text-indigo-200 transition">
+            ⚡ 65W GaN Charger
+          </button>
+          <button onclick="applyPreset('laptop')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 transition">
+            💻 Dev Laptop (₹70k)
+          </button>
+          <button onclick="applyPreset('mouse')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 transition">
+            🖱️ Ergo Mouse (₹3k)
+          </button>
+          <button onclick="applyPreset('monitor')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 transition">
+            🖥️ 4K Monitor (₹35k)
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Input Row -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+        <div class="md:col-span-7">
+          <input type="text" id="queryInput" value="Looking for a 65W GaN fast charger with USB-C cable under ₹2,500." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 term-font" />
+        </div>
+        <div class="md:col-span-3">
+          <input type="number" id="budgetInput" value="2500" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 term-font" placeholder="Max Budget INR" />
+        </div>
+        <div class="md:col-span-2">
+          <button id="execBtn" onclick="startStreamingFlow()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-play"></i> Run Stream
+          </button>
+        </div>
+      </div>
+
+      <!-- Edge Case Simulation Toggles -->
+      <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-6 text-xs text-slate-400 font-medium">
+        <span class="text-indigo-400 font-bold uppercase text-[11px] tracking-wider"><i class="fa-solid fa-vial"></i> Edge Case Testing:</span>
+        <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200">
+          <input type="checkbox" id="tamperTokenCheck" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0" />
+          <span>Tamper AP2 Signature Token</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200">
+          <input type="checkbox" id="counterOfferCheck" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0" />
+          <span>Simulate Counter-Negotiation</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200">
+          <input type="checkbox" id="stockOutCheck" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0" />
+          <span>Simulate Item Stock Out</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover:text-slate-200">
+          <input type="checkbox" id="razorpayErrorCheck" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-0" />
+          <span>Simulate Razorpay API Timeout</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- MAIN SPLIT-SCREEN REAL-TIME DEMO INTERFACE -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- LEFT COLUMN: PANEL A (Buyer Interaction - Live Chat) -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between h-[540px] shadow-2xl border border-indigo-900/40">
+        <!-- Panel Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+              <i class="fa-solid fa-comments text-sm"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-100">Panel A: Buyer Interaction (Live Chat)</h3>
+          </div>
+          <span class="text-[11px] font-mono text-blue-400 bg-blue-950 px-2.5 py-0.5 rounded-full border border-blue-800">A2A Stream</span>
+        </div>
+
+        <!-- Live Streaming Chat Messages Container -->
+        <div id="panelAChat" class="flex-1 overflow-y-auto my-4 space-y-4 pr-1 custom-scrollbar">
+          <div class="text-center py-20 text-slate-500 text-xs">
+            <i class="fa-regular fa-comments text-3xl block mb-2 text-slate-600"></i>
+            Click "Run Stream" to start real-time turn-by-turn AI agent negotiation.
+          </div>
+        </div>
+
+        <!-- Panel Footer -->
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Role: Dynamic Buyer ↔ Dynamic Merchant</span>
+          <span id="chatStatus" class="font-mono text-emerald-400 font-semibold">Idle</span>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: PANEL B (Audit Trail & Bounding Engine Telemetry) -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between h-[540px] shadow-2xl border border-slate-800">
+        <!-- Panel Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <i class="fa-solid fa-shield-halved text-sm"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-100">Panel B: Audit Trail & Bounding Engine</h3>
+          </div>
+          <span id="activeSessionBadge" class="text-[11px] font-mono text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-800">
+            [STATUS: READY]
+          </span>
+        </div>
+
+        <!-- Live Telemetry Stream Container -->
+        <div id="panelBTelemetry" class="flex-1 overflow-y-auto my-4 p-4 rounded-xl bg-slate-950/90 border border-slate-800/80 term-font text-xs space-y-2 text-slate-300 custom-scrollbar">
+          <p class="text-slate-500 italic text-[11px]">-- Real-time telemetry feed standby. Awaiting session stream... --</p>
+        </div>
+
+        <!-- Panel Footer Record Hash -->
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 term-font">
+          <span>Ledger DB: DynamoDB (merchant-agent)</span>
+          <span id="auditRecordIdBadge" class="text-indigo-400 font-bold">[AUDIT RECORD ID: --]</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM SECTION: PERSISTENT DATABASE LEDGER -->
+    <div class="glass-card rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <i class="fa-solid fa-database text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-100">DynamoDB Audit Ledger</h3>
+            <p class="text-[11px] text-slate-400">Durable transaction history stored in merchant database</p>
+          </div>
+        </div>
+        <button onclick="loadDatabaseLedger()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate-right"></i> Refresh DB Records
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-[11px] uppercase text-slate-400 font-semibold bg-slate-900/60 term-font">
+              <th class="py-2.5 px-3">Audit Record ID</th>
+              <th class="py-2.5 px-3">Session ID</th>
+              <th class="py-2.5 px-3">Intent Parsed</th>
+              <th class="py-2.5 px-3">Vector Matches</th>
+              <th class="py-2.5 px-3">Bounding Rule</th>
+              <th class="py-2.5 px-3">Offered Amt</th>
+              <th class="py-2.5 px-3">Razorpay Order</th>
+              <th class="py-2.5 px-3">AP2 Token</th>
+            </tr>
+          </thead>
+          <tbody id="dbLedgerBody" class="divide-y divide-slate-800 text-xs term-font text-slate-300">
+            <tr>
+              <td colspan="8" class="py-6 text-center text-slate-500 font-sans">Loading database records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function applyPreset(preset) {
+      document.getElementById('tamperTokenCheck').checked = false;
+      document.getElementById('counterOfferCheck').checked = false;
+      document.getElementById('stockOutCheck').checked = false;
+      document.getElementById('razorpayErrorCheck').checked = false;
+
+      if (preset === 'charger') {
+        document.getElementById('queryInput').value = "Looking for a 65W GaN fast charger with USB-C cable under ₹2,500.";
+        document.getElementById('budgetInput').value = 2500;
+      } else if (preset === 'laptop') {
+        document.getElementById('queryInput').value = "I need a laptop for programming under ₹70,000.";
+        document.getElementById('budgetInput').value = 70000;
+      } else if (preset === 'mouse') {
+        document.getElementById('queryInput').value = "Need an ergonomic wireless mouse under ₹3,000.";
+        document.getElementById('budgetInput').value = 3000;
+      } else if (preset === 'monitor') {
+        document.getElementById('queryInput').value = "Need a 27-inch 4K monitor with USB-C under ₹35,000.";
+        document.getElementById('budgetInput').value = 35000;
+      }
+    }
+
+    async function startStreamingFlow() {
+      const query = document.getElementById('queryInput').value;
+      const budget = parseFloat(document.getElementById('budgetInput').value) || 0;
+      const execBtn = document.getElementById('execBtn');
+
+      const panelA = document.getElementById('panelAChat');
+      const panelB = document.getElementById('panelBTelemetry');
+      const sessionBadge = document.getElementById('activeSessionBadge');
+      const recordBadge = document.getElementById('auditRecordIdBadge');
+
+      const tamperToken = document.getElementById('tamperTokenCheck').checked;
+      const counterOffer = document.getElementById('counterOfferCheck').checked;
+      const stockOut = document.getElementById('stockOutCheck').checked;
+      const razorpayError = document.getElementById('razorpayErrorCheck').checked;
+
+      execBtn.disabled = true;
+      execBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      execBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Streaming...`;
+
+      panelA.innerHTML = '';
+      panelB.innerHTML = '';
+      sessionBadge.textContent = '[STATUS: CONNECTING STREAM...]';
+      sessionBadge.className = 'text-[11px] font-mono text-indigo-400 bg-indigo-950 px-2.5 py-0.5 rounded-full border border-indigo-800 font-bold';
+      document.getElementById('chatStatus').textContent = 'Streaming...';
+
+      try {
+        const response = await fetch('/api/commerce/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_query: query,
+            max_budget_inr: budget,
+            tamper_token: tamperToken,
+            simulate_counter_offer: counterOffer,
+            simulate_stock_out: stockOut,
+            simulate_razorpay_error: razorpayError
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop(); // keep last incomplete chunk
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              try {
+                const event = JSON.parse(jsonStr);
+                handleStreamEvent(event);
+              } catch (e) {
+                console.error("Failed parsing SSE event", e);
+              }
+            }
+          }
+        }
+
+      } catch (err) {
+        panelA.innerHTML += `
+          <div class="p-3.5 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs space-y-1">
+            <p class="font-bold text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Stream Exception</p>
+            <p class="term-font">${err.message}</p>
+          </div>
+        `;
+        sessionBadge.textContent = '[STATUS: STREAM ERROR]';
+        sessionBadge.className = 'text-[11px] font-mono text-red-400 bg-red-950 px-2.5 py-0.5 rounded-full border border-red-800 font-bold';
+      } finally {
+        execBtn.disabled = false;
+        execBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        execBtn.innerHTML = `<i class="fa-solid fa-play"></i> Run Stream`;
+        loadDatabaseLedger();
+      }
+    }
+
+    function handleStreamEvent(event) {
+      const panelA = document.getElementById('panelAChat');
+      const panelB = document.getElementById('panelBTelemetry');
+      const sessionBadge = document.getElementById('activeSessionBadge');
+      const recordBadge = document.getElementById('auditRecordIdBadge');
+
+      if (event.type === 'PANEL_A') {
+        const div = document.createElement('div');
+        const isBuyer = event.role === 'BUYER';
+        
+        div.className = isBuyer ? 'chat-bubble-buyer p-3.5 rounded-2xl text-xs space-y-1 max-w-[90%]' : 'chat-bubble-merchant p-3.5 rounded-2xl text-xs space-y-1 ml-auto max-w-[90%] text-right';
+        const titleClass = isBuyer ? 'text-blue-400 font-bold text-[11px]' : 'text-indigo-300 font-bold text-[11px]';
+        const icon = isBuyer ? '<i class="fa-solid fa-user-gear mr-1"></i>' : '<i class="fa-solid fa-robot mr-1"></i>';
+
+        div.innerHTML = `
+          <div class="${titleClass}">${icon}${event.speaker}</div>
+          <div class="text-slate-200 font-medium">${event.text}</div>
+        `;
+        panelA.appendChild(div);
+        panelA.scrollTop = panelA.scrollHeight;
+
+      } else if (event.type === 'PANEL_B') {
+        const p = document.createElement('p');
+        
+        if (event.section === 'SESSION_HEADER') {
+          p.className = 'text-emerald-400 font-bold text-sm border-b border-slate-800 pb-1 mb-2';
+          sessionBadge.textContent = event.text;
+          sessionBadge.className = 'text-[11px] font-mono text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-800 font-bold';
+        } else if (event.section === 'GATEWAY_DISPATCH') {
+          p.className = 'text-sky-400 font-bold pt-2 border-t border-slate-800/80 mt-2';
+        } else if (event.section === 'AUDIT_RECORD') {
+          p.className = 'text-purple-400 font-bold text-sm pt-2 border-t border-slate-800 mt-2';
+          recordBadge.textContent = event.text;
+        } else if (event.text.includes('SUCCESS') || event.text.includes('Passed') || event.text.includes('Valid')) {
+          p.className = 'text-emerald-300 font-semibold';
+        } else if (event.text.includes('FAILED') || event.text.includes('BLOCKED') || event.text.includes('ERROR')) {
+          p.className = 'text-red-400 font-bold';
+        } else {
+          p.className = 'text-slate-300';
+        }
+
+        p.textContent = event.text;
+        panelB.appendChild(p);
+        panelB.scrollTop = panelB.scrollHeight;
+
+      } else if (event.type === 'COMPLETE') {
+        document.getElementById('chatStatus').textContent = 'Transaction Completed';
+        loadDatabaseLedger();
+
+      } else if (event.type === 'ERROR') {
+        const isGatewayError = event.source === 'RAZORPAY_API' || event.detail.startsWith('Razorpay payment failed');
+        const errorTitle = isGatewayError ? 'Razorpay Payment Declined' : 'Bounding Rule Violation';
+        panelA.innerHTML += `
+          <div class="p-3.5 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs space-y-1">
+            <p class="font-bold text-red-400"><i class="fa-solid fa-ban"></i> ${errorTitle}</p>
+            <p class="term-font">${event.detail}</p>
+          </div>
+        `;
+        sessionBadge.textContent = isGatewayError ? '[STATUS: PAYMENT DECLINED]' : '[STATUS: RULE BLOCKED]';
+        sessionBadge.className = 'text-[11px] font-mono text-red-400 bg-red-950 px-2.5 py-0.5 rounded-full border border-red-800 font-bold';
+        document.getElementById('chatStatus').textContent = isGatewayError ? 'Payment Declined' : 'Rule Blocked';
+        loadDatabaseLedger();
+      } else if (event.type === 'CHECKOUT_REQUIRED') {
+        if (window.activeCheckout) {
+          return;
+        }
+        let paymentFailed = false;
+        const checkoutOptions = {
+          ...event.order,
+          retry: {enabled: true, max_count: 3},
+          notes: {
+            test_payment_hint: 'Use a domestic card from the Razorpay Test Mode dashboard.'
+          },
+          method: {
+            upi: false,
+            card: true,
+            netbanking: true,
+            wallet: true
+          },
+          handler: async function (response) {
+            window.activeCheckout = null;
+            const verify = await fetch('/api/razorpay/verify', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(response)
+            });
+            const result = await verify.json();
+            handleStreamEvent(verify.ok
+              ? {type: 'PANEL_B', section: 'TRANSACTION_STATUS', text: '> Razorpay Checkout signature verified.'}
+              : {type: 'ERROR', detail: result.detail || 'Checkout verification failed.'});
+          },
+          modal: {ondismiss: function () {
+            window.activeCheckout = null;
+            if (!paymentFailed) {
+              handleStreamEvent({type: 'ERROR', detail: 'Razorpay Checkout was cancelled. No payment was confirmed. In Test Mode, use UPI ID success@razorpay.'});
+            }
+          }}
+        };
+        const checkout = new Razorpay(checkoutOptions);
+        window.activeCheckout = checkout;
+        checkout.on('payment.failed', async function (response) {
+          if (paymentFailed) {
+            return;
+          }
+          paymentFailed = true;
+          window.activeCheckout = null;
+          const error = response.error || {};
+          await fetch('/api/razorpay/failure', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              order_id: error.metadata && error.metadata.order_id,
+              code: error.code,
+              description: error.description,
+              reason: error.reason,
+              source: error.source,
+              step: error.step
+            })
+          });
+          handleStreamEvent({
+            type: 'ERROR',
+            source: 'RAZORPAY_API',
+            detail: `Razorpay payment failed [${error.code || 'UNKNOWN'}]: ${error.description || error.reason || 'Authorization was declined.'} Use a domestic card listed in your Razorpay Test Mode dashboard.`
+          });
+        });
+        checkout.open();
+      }
+    }
+
+    async function loadDatabaseLedger() {
+      try {
+        const res = await fetch('/api/audit/ledger');
+        const data = await res.json();
+        
+        const tbody = document.getElementById('dbLedgerBody');
+        tbody.innerHTML = '';
+
+        const dbRecords = data.db_records || [];
+        if (dbRecords.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-center text-slate-500 font-sans">No persistent records found in DB.</td></tr>`;
+          return;
+        }
+
+        dbRecords.forEach(rec => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-900/60 transition';
+
+          const isPassed = rec.bounding_rule_status === 'PASSED';
+          const ruleBadge = isPassed 
+            ? '<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold">PASSED</span>'
+            : '<span class="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800 text-[10px] font-bold">FAILED</span>';
+
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 font-bold text-indigo-400">${rec.audit_record_id}</td>
+            <td class="py-2.5 px-3 text-slate-400">${rec.session_id}</td>
+            <td class="py-2.5 px-3 text-slate-300 font-sans">${rec.intent || 'Hardware Procurement'}</td>
+            <td class="py-2.5 px-3 text-blue-400">${rec.vector_matches_count} Matches</td>
+            <td class="py-2.5 px-3">${ruleBadge}</td>
+            <td class="py-2.5 px-3 text-emerald-300 font-bold">₹${(rec.offered_amount_inr || 0).toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-slate-400 text-[11px]">${rec.razorpay_order_id || '--'}</td>
+            <td class="py-2.5 px-3 text-slate-400 text-[11px]">${rec.ap2_signature_status}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error("Failed to load DB ledger", err);
+      }
+    }
+
+    loadDatabaseLedger();
+  </script>
+</body>
+</html>

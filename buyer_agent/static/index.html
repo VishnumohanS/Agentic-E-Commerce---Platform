@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Buyer Agent - Agentic Commerce</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;
+      --text:#e6edf3;--muted:#7d8590;--blue:#58a6ff;--green:#3fb950;
+      --orange:#d29922;--purple:#bc8cff;--red:#f85149;--cyan:#39d353;
+      --radius:10px;--mono:"JetBrains Mono","Fira Code",monospace;
+    }
+    html,body{height:100%;overflow:hidden;}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100vh;}
+    header{display:flex;align-items:center;gap:12px;padding:12px 20px;
+      background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+    header .logo{font-size:20px;font-weight:700;}
+    header .logo span{color:var(--blue);}
+    .track-badge{background:linear-gradient(135deg,#1a3a5c,#1c2e4a);border:1px solid #2d5a8e;
+      color:var(--blue);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+    .status-dots{display:flex;gap:8px;margin-left:auto;align-items:center;}
+    .dot-label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background 0.3s;}
+    .dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
+    .dot.red{background:var(--red);}
+    #config-banner{display:none;background:#2d1f00;border-bottom:1px solid #6e4c00;
+      padding:10px 20px;font-size:13px;color:#ffcc00;align-items:center;gap:10px;flex-shrink:0;}
+    #config-banner.show{display:flex;}
+    #config-banner a{color:var(--orange);text-decoration:underline;}
+    .workspace{display:grid;grid-template-columns:420px 1fr;flex:1;overflow:hidden;}
+    .buyer-panel{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+    .panel-header{padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);
+      font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .merchant-status{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+    #chat-thread{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+    .chat-msg{display:flex;flex-direction:column;gap:4px;max-width:88%;}
+    .chat-msg.buyer{align-self:flex-end;}
+    .chat-msg.merchant{align-self:flex-start;}
+    .chat-msg.system{align-self:center;max-width:100%;}
+    .chat-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;padding:0 4px;}
+    .chat-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+    .chat-msg.buyer .chat-bubble{background:#1c3a5c;border-bottom-right-radius:3px;}
+    .chat-msg.merchant .chat-bubble{background:#1a2e1a;border-bottom-left-radius:3px;}
+    .chat-msg.system .chat-bubble{background:#21262d;border:1px solid var(--border);font-size:12px;color:var(--muted);text-align:center;border-radius:8px;}
+    .receipt-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;min-width:260px;}
+    .receipt-title{font-size:14px;font-weight:700;color:var(--green);margin-bottom:10px;}
+    .rrow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);}
+    .rrow:last-child{border:none;}
+    .rrow .rk{color:var(--muted);}
+    .rrow .rv{font-family:var(--mono);font-size:11px;}
+    .rrow .rv.green{color:var(--green);font-weight:700;}
+    .input-area{padding:14px 16px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+    .input-area textarea{width:100%;background:var(--surface2);border:1px solid var(--border);
+      border-radius:8px;color:var(--text);font-size:13px;padding:10px 12px;resize:none;font-family:inherit;margin-bottom:8px;outline:none;}
+    .input-area textarea:focus{border-color:var(--blue);}
+    .input-row{display:flex;gap:8px;align-items:center;}
+    .budget-box{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;}
+    .budget-box input{background:none;border:none;color:var(--text);font-size:13px;width:80px;outline:none;font-family:var(--mono);}
+    .btn-p{background:linear-gradient(135deg,#1c6ed4,#0d5bba);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;}
+    .btn-p:hover:not(:disabled){opacity:0.9;}
+    .btn-p:disabled{opacity:0.5;cursor:not-allowed;}
+    .btn-s{background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:13px;cursor:pointer;}
+    .btn-s:hover{color:var(--text);}
+    .btn-d{background:#2d0a0a;color:var(--red);border:1px solid #6b1010;border-radius:8px;padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;}
+    .btn-d:hover{background:#3d1010;}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .monitor-panel{display:flex;flex-direction:column;overflow:hidden;}
+    .mon-header{display:flex;gap:4px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+    .tab-btn{background:none;border:1px solid transparent;border-radius:6px;color:var(--muted);font-size:12px;padding:5px 10px;cursor:pointer;}
+    .tab-btn.active{background:var(--surface2);border-color:var(--border);color:var(--text);}
+    .tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+    .tab-pane.active{display:flex;}
+    .tab-inner{padding:14px;display:flex;flex-direction:column;gap:10px;}
+    .empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:13px;padding:40px 20px;}
+    .empty .ico{font-size:32px;}
+    #log-box{flex:1;overflow-y:auto;padding:6px 0;}
+    .le{display:flex;gap:8px;padding:5px 10px;border-bottom:1px solid #1c2128;align-items:flex-start;font-size:12px;font-family:var(--mono);}
+    .le:hover{background:#1c2128;}
+    .lts{color:var(--muted);min-width:64px;flex-shrink:0;font-size:11px;margin-top:1px;}
+    .lbadge{padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;min-width:70px;text-align:center;flex-shrink:0;}
+    .lmsg{flex:1;color:var(--text);word-break:break-word;font-size:12px;}
+    .ldetail{color:var(--muted);font-size:11px;margin-top:2px;}
+    .B-USER,.B-BUYER{background:#1c3a5c;color:var(--blue);}
+    .B-MERCHANT{background:#1a2e1a;color:var(--green);}
+    .B-SYSTEM{background:#21262d;color:var(--muted);}
+    .B-MCP{background:#1a2339;color:var(--purple);}
+    .B-A2A{background:#2a1a4a;color:var(--purple);}
+    .B-MANDATE{background:#2a1f00;color:var(--orange);}
+    .B-RAZORPAY{background:#1a2f3a;color:var(--cyan);}
+    .B-INTENT{background:#1a2a1a;color:var(--green);}
+    .B-STOCK{background:#1a2a20;color:var(--green);}
+    .B-COMPLETE{background:#003d1a;color:var(--green);}
+    .B-ERROR{background:#3d0a0a;color:var(--red);}
+    .B-CONFIG{background:#3d1a00;color:var(--orange);}
+    .B-DEMO{background:#2d0a0a;color:var(--red);}
+    .icard{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:12px;}
+    .icard-h{padding:10px 14px;background:#1c2128;font-weight:600;font-size:13px;border-bottom:1px solid var(--border);}
+    .icard-b{padding:12px 14px;display:flex;flex-direction:column;gap:6px;}
+    .ir{display:flex;justify-content:space-between;gap:8px;}
+    .ir .ik{color:var(--muted);}
+    .ir .iv{font-family:var(--mono);text-align:right;word-break:break-all;}
+    .ir .iv.blue{color:var(--blue);}
+    .ir .iv.green{color:var(--green);}
+    .ir .iv.orange{color:var(--orange);}
+    .mcard{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;}
+    .mtool{font-weight:600;color:var(--purple);margin-bottom:6px;}
+    .mres{color:var(--text);font-size:11px;line-height:1.5;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">&#x1F916; <span>Buyer</span>Agent</div>
+  <div class="track-badge">Track 01 &mdash; AI Growth &amp; Agentic Commerce</div>
+  <div class="status-dots">
+    <span class="dot-label"><span class="dot" id="dg"></span> Bedrock</span>
+    <span class="dot-label"><span class="dot" id="dr"></span> Razorpay</span>
+    <span class="dot-label"><span class="dot" id="dm"></span> Merchant</span>
+  </div>
+</header>
+<div id="cfg-banner" style="display:none;background:#2d1f00;border-bottom:1px solid #6e4c00;padding:10px 20px;font-size:13px;color:#ffcc00;align-items:center;gap:10px;flex-shrink:0;">
+  &#x26A0;&#xFE0F;&nbsp;Missing: <span id="cfg-keys" style="font-family:var(--mono);background:#3d2900;padding:2px 6px;border-radius:4px;font-size:11px;"></span>
+  &mdash; demo mode.
+  <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/setting-up.html" target="_blank" style="color:var(--orange);">AWS Bedrock setup</a> &middot;
+  <a href="https://dashboard.razorpay.com" target="_blank" style="color:var(--orange);">Razorpay keys</a>
+</div>
+<div class="workspace">
+  <div class="buyer-panel">
+    <div class="panel-header">
+      &#x1F4AC; Buyer Console
+      <div class="merchant-status">
+        <span class="dot" id="mdot"></span>
+        <span id="mstatus">Checking merchant&hellip;</span>
+      </div>
+    </div>
+    <div id="chat-thread">
+      <div class="chat-msg system">
+        <div class="chat-bubble">Tell me what you want to buy. I will find it, negotiate the best deal, and complete the payment autonomously.</div>
+      </div>
+    </div>
+    <div class="input-area">
+      <textarea id="qin" rows="2" placeholder="e.g. I need a developer laptop for programming under Rs 70,000"></textarea>
+      <div class="input-row">
+        <div class="budget-box"><span>Max Rs</span><input id="bin" type="number" value="70000" min="0" /></div>
+        <button class="btn-s" id="rst-btn" onclick="resetSession()">Reset</button>
+        <button class="btn-d" id="dbr-btn" onclick="demoBreach()">&#x26D4; Breach</button>
+        <button class="btn-p" id="buy-btn" onclick="startPipeline()">
+          <span id="buy-lbl">Buy Now &rarr;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="monitor-panel">
+    <div class="mon-header">
+      <button class="tab-btn active" id="tb0" onclick="sw(0,'log')">&#x1F4CB; Live Audit</button>
+      <button class="tab-btn" id="tb1" onclick="sw(1,'a2a')">&#x1F517; A2A</button>
+      <button class="tab-btn" id="tb2" onclick="sw(2,'mcp')">&#x1F6E0; MCP</button>
+      <button class="tab-btn" id="tb3" onclick="sw(3,'mandate')">&#x1F512; Mandate</button>
+      <button class="tab-btn" id="tb4" onclick="sw(4,'payment')">&#x1F4B3; Payment</button>
+      <button class="tab-btn" id="tb5" onclick="sw(5,'receipt')">&#x1F9FE; Receipt</button>
+    </div>
+    <div class="tab-pane active" id="tp-log"><div id="log-box"><div class="le" style="justify-content:center;color:var(--muted);">Waiting for pipeline&hellip;</div></div></div>
+    <div class="tab-pane" id="tp-a2a"><div class="tab-inner" id="a2a-c"><div class="empty"><div class="ico">&#x1F517;</div>No A2A messages yet</div></div></div>
+    <div class="tab-pane" id="tp-mcp"><div class="tab-inner" id="mcp-c"><div class="empty"><div class="ico">&#x1F6E0;</div>No MCP tool calls yet</div></div></div>
+    <div class="tab-pane" id="tp-mandate"><div class="tab-inner" id="man-c"><div class="empty"><div class="ico">&#x1F512;</div>No mandate issued yet</div></div></div>
+    <div class="tab-pane" id="tp-payment"><div class="tab-inner" id="pay-c"><div class="empty"><div class="ico">&#x1F4B3;</div>No payment activity yet</div></div></div>
+    <div class="tab-pane" id="tp-receipt"><div class="tab-inner" id="rec-c"><div class="empty"><div class="ico">&#x1F9FE;</div>No completed orders yet</div></div></div>
+  </div>
+</div>
+<script>
+var es=null,running=false,mcpCalls=[],a2aMsgs=[];
+
+/* ── Tabs ── */
+function sw(idx,name){
+  for(var i=0;i<6;i++){document.getElementById('tb'+i).classList.remove('active');}
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tb'+idx).classList.add('active');
+  document.getElementById('tp-'+name).classList.add('active');
+}
+
+/* ── Dots ── */
+function dot(id,ok){var e=document.getElementById(id);if(!e)return;e.className='dot'+(ok?' green':' red');}
+
+/* ── Log ── */
+function clearLog(){
+  document.getElementById('log-box').innerHTML='<div class="le" style="justify-content:center;color:var(--muted);">Pipeline started&hellip;</div>';
+}
+function addLog(type,msg,detail){
+  var c=document.getElementById('log-box');
+  var ph=c.querySelector('.le[style]');if(ph)ph.remove();
+  var t=new Date().toLocaleTimeString('en-IN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var tp=String(type||'SYSTEM').toUpperCase();
+  var e=document.createElement('div');e.className='le';
+  e.innerHTML='<span class="lts">'+t+'</span>'+
+    '<span class="lbadge B-'+tp+'">'+xe(tp)+'</span>'+
+    '<span class="lmsg">'+xe(String(msg||''))+(detail?'<div class="ldetail">'+xe(String(detail))+'</div>':'')+'</span>';
+  c.appendChild(e);c.scrollTop=c.scrollHeight;
+}
+
+/* ── Chat ── */
+function clearChat(){
+  document.getElementById('chat-thread').innerHTML='<div class="chat-msg system"><div class="chat-bubble">Tell me what you want to buy. I will find it, negotiate the best deal, and complete the payment autonomously.</div></div>';
+}
+function addChat(role,text){
+  var t=document.getElementById('chat-thread');
+  var d=document.createElement('div');d.className='chat-msg '+(role||'system');
+  var L={buyer:'You (Buyer Agent)',merchant:'Merchant Agent',system:''};
+  var lbl=L[role]!==undefined?L[role]:role;
+  d.innerHTML=(lbl?'<div class="chat-label">'+xe(lbl)+'</div>':'')+'<div class="chat-bubble">'+xe(String(text||''))+'</div>';
+  t.appendChild(d);t.scrollTop=t.scrollHeight;
+}
+function addReceipt(r){
+  if(!r)return;
+  var t=document.getElementById('chat-thread');
+  var d=document.createElement('div');d.className='chat-msg merchant';
+  d.innerHTML='<div class="chat-label">Order Receipt</div>'+
+    '<div class="receipt-card">'+
+      '<div class="receipt-title">&#x2705; Order Confirmed</div>'+
+      rr('Order ID',r.order_id||'--','')+rr('Payment ID',r.razorpay_payment_id||'--','')+
+      rr('Amount Paid','Rs '+fn(r.total_paid_inr),'green')+rr('Upsell Revenue','Rs '+fn(r.upsell_revenue_gained_inr),'')+
+      rr('Mandate',r.mandate_id||'--','')+
+    '</div>';
+  t.appendChild(d);t.scrollTop=t.scrollHeight;
+}
+function rr(k,v,cls){return '<div class="rrow"><span class="rk">'+xe(k)+'</span><span class="rv '+cls+'">'+xe(v)+'</span></div>';}
+
+/* ── Controls ── */
+function setBuying(on){
+  var b=document.getElementById('buy-btn');var l=document.getElementById('buy-lbl');
+  b.disabled=on;
+  l.innerHTML=on?'<span class="spinner"></span> Processing&hellip;':'Buy Now &rarr;';
+  document.getElementById('qin').disabled=on;
+  document.getElementById('bin').disabled=on;
+}
+function resetTabs(){
+  document.getElementById('a2a-c').innerHTML='<div class="empty"><div class="ico">&#x1F517;</div>No A2A messages yet</div>';
+  document.getElementById('mcp-c').innerHTML='<div class="empty"><div class="ico">&#x1F6E0;</div>No MCP tool calls yet</div>';
+  document.getElementById('man-c').innerHTML='<div class="empty"><div class="ico">&#x1F512;</div>No mandate issued yet</div>';
+  document.getElementById('pay-c').innerHTML='<div class="empty"><div class="ico">&#x1F4B3;</div>No payment activity yet</div>';
+  document.getElementById('rec-c').innerHTML='<div class="empty"><div class="ico">&#x1F9FE;</div>No completed orders yet</div>';
+}
+function resetSession(){
+  if(es){es.close();es=null;}running=false;setBuying(false);clearChat();clearLog();resetTabs();mcpCalls=[];a2aMsgs=[];
+}
+function finalize(){running=false;setBuying(false);if(es){es.close();es=null;}}
+
+/* ── Helpers ── */
+function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fn(n){return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function badgeFor(step){
+  var s=String(step||'').toUpperCase();
+  if(/RAZORPAY|GATEWAY|TOKEN|PAYMENT|ORDER/.test(s))return 'RAZORPAY';
+  if(/MANDATE|BOUNDING/.test(s))return 'MANDATE';
+  if(/STOCK/.test(s))return 'STOCK';
+  if(/CATALOG|SEARCH|MCP|UPSELL/.test(s))return 'MCP';
+  if(/INTENT/.test(s))return 'INTENT';
+  return 'SYSTEM';
+}
+function ir(k,v,cls){return '<div class="ir"><span class="ik">'+xe(k)+'</span><span class="iv '+cls+'">'+xe(v)+'</span></div>';}
+
+/* ── Demo breach ── */
+function demoBreach(){
+  document.getElementById('qin').value='I need a developer laptop for programming';
+  document.getElementById('bin').value='60000';
+  addChat('system','Demo: Budget Breach\nLaptop Rs 65,000 > Mandate limit Rs 60,000\nAP2 gate will BLOCK this transaction.');
+  addLog('DEMO','Budget Breach Demo loaded','Cart exceeds AP2 mandate limit - BLOCKED');
+  setTimeout(startPipeline,600);
+}
+
+/* ── Pipeline ── */
+function startPipeline(){
+  var q=document.getElementById('qin').value.trim();
+  var b=parseFloat(document.getElementById('bin').value)||70000;
+  if(!q){document.getElementById('qin').focus();return;}
+  if(running)return;
+  running=true;mcpCalls=[];a2aMsgs=[];
+  setBuying(true);clearLog();resetTabs();
+  addChat('buyer',q);
+  addChat('system','Starting autonomous purchase pipeline... budget: Rs '+b.toLocaleString('en-IN'));
+  var p=new URLSearchParams({user_query:q,max_budget_inr:b});
+  es=new EventSource('/api/buyer/run?'+p.toString());
+  es.onmessage=function(e){try{handleEvent(JSON.parse(e.data));}catch(err){}};
+  es.onerror=function(){if(running){addLog('ERROR','Stream ended or disconnected','');finalize();}};
+}
+
+/* ── Event handler ── */
+function handleEvent(ev){
+  var tp=ev.type||'';
+  if(tp==='CONFIG_ERROR'){
+    addLog('CONFIG','Missing API keys',(ev.missing_keys||[]).join(', '));
+    addChat('system','Warning: '+(ev.message||'Some API keys missing. Running in demo mode.'));
+    var banner=document.getElementById('cfg-banner');banner.style.display='flex';
+    if(ev.missing_keys)document.getElementById('cfg-keys').textContent=ev.missing_keys.join(', ');
+  }else if(tp==='MERCHANT_STATUS'){
+    var on=!!ev.online;
+    addLog('SYSTEM','Merchant '+(on?'ONLINE':'OFFLINE'),ev.url||'');
+    dot('dm',on);dot('mdot',on);
+    document.getElementById('mstatus').textContent=on?'Merchant Online':'Merchant Offline';
+    if(!on)addChat('system','Merchant offline. Start it: python main.py');
+  }else if(tp==='SYSTEM'){
+    addLog('SYSTEM',ev.message||'','');
+  }else if(tp==='INTENT_PARSED'){
+    addLog('INTENT','Intent: '+(ev.intent||''),'Budget: Rs '+fn(ev.budget_inr)+' | '+( ev.category||''));
+    addLog('USER','"'+(ev.intent||'')+'"','Rs '+fn(ev.budget_inr));
+    document.getElementById('man-c').innerHTML='<div class="icard"><div class="icard-h">Intent Parsed</div><div class="icard-b">'+
+      ir('Intent',ev.intent||'--','blue')+ir('Budget','Rs '+fn(ev.budget_inr),'green')+ir('Category',ev.category||'--','')+
+      '</div></div>';
+  }else if(tp==='MANDATE_ISSUED'){
+    addLog('MANDATE','AP2 Mandate issued','ID: '+(ev.mandate_id||'')+' | Limit: Rs '+fn(ev.max_amount));
+    document.getElementById('man-c').innerHTML='<div class="icard"><div class="icard-h">AP2 Bounded Mandate</div><div class="icard-b">'+
+      ir('Mandate ID',ev.mandate_id||'--','blue')+ir('Max Budget','Rs '+fn(ev.max_amount),'green')+
+      ir('Merchant',ev.merchant||'--','')+ir('Expires',ev.expires_at||'--','orange')+
+      ir('Signature',ev.signature_preview||'--','')+
+      '</div></div>';
+    sw(3,'mandate');
+  }else if(tp==='MCP_CALL'){
+    addLog('MCP','Tool call: '+(ev.tool||''),JSON.stringify(ev.args||{}).substring(0,160));
+  }else if(tp==='MCP_RESULT'){
+    addLog('MCP','Tool result: '+(ev.tool||''),String(ev.result||'').substring(0,220));
+    mcpCalls.push(ev);
+    var mc=document.getElementById('mcp-c');mc.innerHTML='';
+    mcpCalls.forEach(function(m){
+      var d=document.createElement('div');d.className='mcard';
+      d.innerHTML='<div class="mtool">'+xe(m.tool||'')+'</div><div class="mres">'+xe(String(m.result||'').substring(0,400))+'</div>';
+      mc.appendChild(d);
+    });
+  }else if(tp==='A2A_SENT'){
+    addLog('A2A','A2A SendMessageRequest to Merchant',String(ev.message||'').substring(0,140));
+  }else if(tp==='A2A_RECEIVED'){
+    addLog('A2A','A2A Response: '+(ev.state||''),String(ev.reply||'').substring(0,160));
+    a2aMsgs.push(ev);
+    var ac=document.getElementById('a2a-c');ac.innerHTML='';
+    a2aMsgs.forEach(function(m){
+      var d=document.createElement('div');d.className='icard';
+      d.innerHTML='<div class="icard-h">A2A &mdash; '+xe(m.state||'')+'</div><div class="icard-b">'+
+        ir('Task ID',m.task_id||'--','blue')+ir('State',m.state||'--',m.state==='TASK_STATE_COMPLETED'?'green':'orange')+
+        '</div>';
+      ac.appendChild(d);
+    });
+  }else if(tp==='COMMERCE_PIPELINE'){
+    var step=ev.step||'';
+    var txt=(ev.data&&ev.data.text)?ev.data.text.replace(/^>\s*/,''):step;
+    addLog(badgeFor(step),step.replace(/_/g,' '),txt);
+    if(/PAYMENT|ORDER|GATEWAY/.test(step.toUpperCase())){
+      document.getElementById('pay-c').innerHTML='<div class="icard"><div class="icard-h">Razorpay Gateway</div><div class="icard-b">'+ir('Status','Processing','green')+ir('Step',step,'')+ir('Detail',txt,'')+'</div></div>';
+    }
+  }else if(tp==='CHAT_MESSAGE'){
+    var r2=ev.role==='MERCHANT'?'merchant':ev.role==='BUYER'?'buyer':'system';
+    addChat(r2,ev.text||'');
+  }else if(tp==='COMPLETE'){
+    addLog('COMPLETE','Transaction Confirmed','Session: '+(ev.session_id||''));
+    addReceipt(ev.receipt||{});
+    var rec=ev.receipt||{};
+    document.getElementById('rec-c').innerHTML='<div class="icard"><div class="icard-h">&#x2705; Order Confirmed</div><div class="icard-b">'+
+      ir('Order ID',rec.order_id||'--','blue')+ir('Payment ID',rec.razorpay_payment_id||'--','blue')+
+      ir('Amount','Rs '+fn(rec.total_paid_inr),'green')+ir('Upsell Revenue','Rs '+fn(rec.upsell_revenue_gained_inr),'orange')+
+      ir('Mandate',rec.mandate_id||'--','')+ir('Audit Hash',String(rec.audit_hash_chain||'--').substring(0,32)+'...','')+'</div></div>';
+    setTimeout(function(){sw(5,'receipt');},400);
+    finalize();
+  }else if(tp==='CHECKOUT_REQUIRED'){
+    if(!window.Razorpay){addChat('system','Razorpay Checkout could not be loaded.');finalize();return;}
+    addLog('RAZORPAY','Awaiting user payment','Opening Razorpay Test Checkout');
+    var merchant=ev.merchant_url||'http://localhost:8000';
+    var paymentFailed=false;
+    var checkout=new Razorpay(Object.assign({},ev.order||{}, {
+      retry:{enabled:true,max_count:3},
+      notes:{test_payment_hint:'Use a domestic card from the Razorpay Test Mode dashboard.'},
+      method:{upi:false,card:true,netbanking:true,wallet:true},
+      handler:async function(response){
+      window.activeCheckout=null;
+      var verify=await fetch(merchant+'/api/razorpay/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(response)});
+      var result=await verify.json();
+      if(verify.ok){addLog('RAZORPAY','Payment verified','Order '+(result.order_id||''));addChat('system','Payment verified. Your order is confirmed.');}
+      else {addLog('ERROR','Payment verification failed',result.detail||'');addChat('system',result.detail||'Payment verification failed.');}
+      finalize();
+    },modal:{ondismiss:function(){
+      window.activeCheckout=null;
+      if(!paymentFailed){addChat('system','Checkout was cancelled. No payment was confirmed. In Test Mode, use UPI ID success@razorpay.');finalize();}
+    }}}));
+    checkout.on('payment.failed',async function(response){
+      paymentFailed=true;
+      window.activeCheckout=null;
+      var error=response.error||{};
+      try{
+        await fetch(merchant+'/api/razorpay/failure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+          order_id:error.metadata&&error.metadata.order_id,code:error.code,description:error.description,
+          reason:error.reason,source:error.source,step:error.step
+        })});
+      }catch(_){}
+      addLog('ERROR','Payment declined',error.description||error.reason||'Authorization was declined.');
+      addChat('system','Payment failed. Use a domestic card listed in your Razorpay Test Mode dashboard.');
+      finalize();
+    });
+    checkout.open();
+  }else if(tp==='ERROR'){
+    addLog('ERROR',ev.detail||'Pipeline error','');
+    addChat('system','Error: '+(ev.detail||'Pipeline error'));
+    finalize();
+  }else if(tp){
+    addLog('SYSTEM',tp,JSON.stringify(ev).substring(0,80));
+  }
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded',function(){
+  fetch('/api/buyer/health').then(function(r){return r.json();}).then(function(h){
+    dot('dg',h.gemini_mode==='live');
+    dot('dr',/live/.test(h.razorpay_mode||''));
+    if(h.missing_keys&&h.missing_keys.length){
+      document.getElementById('cfg-banner').style.display='flex';
+      document.getElementById('cfg-keys').textContent=h.missing_keys.join(', ');
+    }
+  }).catch(function(){});
+  fetch('/api/buyer/merchant/card').then(function(r){return r.json();}).then(function(card){
+    var ok=!card.error;
+    dot('dm',ok);dot('mdot',ok);
+    document.getElementById('mstatus').textContent=ok?'Merchant Online':'Merchant Offline';
+  }).catch(function(){dot('dm',false);document.getElementById('mstatus').textContent='Merchant Offline';});
+  document.getElementById('qin').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();startPipeline();}
+  });
+});
+</script>
+</body>
+</html>
